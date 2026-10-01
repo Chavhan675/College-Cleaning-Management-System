@@ -22,6 +22,7 @@ import {
   saveInventory, 
   resetAllData 
 } from "./utils/storage";
+import { getFallbackAnalysis } from "./utils/collegeCleaningAi";
 
 // Components
 import { Header } from "./components/Header";
@@ -161,6 +162,7 @@ export default function App() {
   const triggerAIAnalysisForIncident = async (incident: CleaningIncident) => {
     setIsAILoading(true);
     setAnalyzingIncidentId(incident.id);
+    let protocol = null;
     try {
       const res = await fetch("/api/ai/analyze-issue", {
         method: "POST",
@@ -173,19 +175,31 @@ export default function App() {
           urgency: incident.urgency,
         }),
       });
-      const data = await res.json();
-      if (data.protocol) {
-        setIncidents((prev) =>
-          prev.map((i) => (i.id === incident.id ? { ...i, aiProtocol: data.protocol } : i))
-        );
-        showToast(`AI Sanitation Protocol generated for ${incident.ticketNumber}`);
+      if (res.ok) {
+        const data = await res.json();
+        if (data.protocol) {
+          protocol = data.protocol;
+        }
       }
     } catch (e) {
-      console.error("AI fetch error:", e);
-    } finally {
-      setIsAILoading(false);
-      setAnalyzingIncidentId(undefined);
+      console.warn("Backend API unavailable, using built-in campus sanitation AI:", e);
     }
+
+    if (!protocol) {
+      protocol = getFallbackAnalysis(
+        incident.category,
+        incident.location,
+        incident.description,
+        incident.urgency
+      );
+    }
+
+    setIncidents((prev) =>
+      prev.map((i) => (i.id === incident.id ? { ...i, aiProtocol: protocol } : i))
+    );
+    showToast(`AI Sanitation Protocol ready for ${incident.ticketNumber}`);
+    setIsAILoading(false);
+    setAnalyzingIncidentId(undefined);
   };
 
   // Handler: Mark Zone Cleaned

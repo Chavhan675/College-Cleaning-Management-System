@@ -16,6 +16,7 @@ import {
   Send
 } from "lucide-react";
 import { AIProtocol } from "../types";
+import { getFallbackAnalysis, getFallbackSOP } from "../utils/collegeCleaningAi";
 
 export const AISanitationAdvisor: React.FC = () => {
   const [activeMode, setActiveMode] = useState<"hazard" | "sop">("hazard");
@@ -75,6 +76,7 @@ export const AISanitationAdvisor: React.FC = () => {
 
   const handleAnalyzeHazard = async () => {
     setAnalyzingHazard(true);
+    let protocol: AIProtocol | null = null;
     try {
       const res = await fetch("/api/ai/analyze-issue", {
         method: "POST",
@@ -87,19 +89,32 @@ export const AISanitationAdvisor: React.FC = () => {
           urgency: hazardUrgency,
         }),
       });
-      const data = await res.json();
-      if (data.protocol) {
-        setHazardResult(data.protocol);
+      if (res.ok) {
+        const data = await res.json();
+        if (data.protocol) {
+          protocol = data.protocol;
+        }
       }
     } catch (e) {
-      console.error(e);
-    } finally {
-      setAnalyzingHazard(false);
+      console.warn("Backend API unavailable, using built-in campus sanitation AI:", e);
     }
+
+    if (!protocol) {
+      protocol = getFallbackAnalysis(
+        hazardCategory,
+        hazardLocation,
+        hazardDescription,
+        hazardUrgency
+      );
+    }
+
+    setHazardResult(protocol);
+    setAnalyzingHazard(false);
   };
 
   const handleGenerateSOP = async () => {
     setGeneratingSOP(true);
+    let sop: any = null;
     try {
       const res = await fetch("/api/ai/generate-sop", {
         method: "POST",
@@ -110,15 +125,22 @@ export const AISanitationAdvisor: React.FC = () => {
           frequency,
         }),
       });
-      const data = await res.json();
-      if (data.sop) {
-        setSopResult(data.sop);
+      if (res.ok) {
+        const data = await res.json();
+        if (data.sop) {
+          sop = data.sop;
+        }
       }
     } catch (e) {
-      console.error(e);
-    } finally {
-      setGeneratingSOP(false);
+      console.warn("Backend API unavailable, using built-in campus SOP generator:", e);
     }
+
+    if (!sop) {
+      sop = getFallbackSOP(facilityType, eventScenario, frequency);
+    }
+
+    setSopResult(sop);
+    setGeneratingSOP(false);
   };
 
   const copyToClipboard = (text: string) => {
