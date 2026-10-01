@@ -6,11 +6,24 @@ import dotenv from "dotenv";
 
 dotenv.config();
 
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
+// Safe directory resolution for both ESM (tsx dev) and bundled CJS (dist/server.cjs)
+const getDirname = () => {
+  if (typeof __dirname !== "undefined") {
+    return __dirname;
+  }
+  try {
+    if (typeof import.meta !== "undefined" && import.meta.url) {
+      return path.dirname(fileURLToPath(import.meta.url));
+    }
+  } catch {
+    // Fall back to process.cwd()
+  }
+  return process.cwd();
+};
+const appDir = getDirname();
 
 const app = express();
-const PORT = 3000;
+const PORT = Number(process.env.PORT) || 3000;
 
 app.use(express.json({ limit: "10mb" }));
 
@@ -253,15 +266,25 @@ function getFallbackSOP(facilityType: string, eventOrScenario: string) {
 
 // Development Vite middleware or Production Static
 async function initServer() {
-  if (process.env.NODE_ENV !== "production") {
-    const { createServer: createViteServer } = await import("vite");
-    const vite = await createViteServer({
-      server: { middlewareMode: true },
-      appType: "spa",
-    });
-    app.use(vite.middlewares);
+  const isProduction = process.env.NODE_ENV === "production" || typeof __dirname !== "undefined";
+  const distPath = path.join(process.cwd(), "dist");
+
+  if (!isProduction) {
+    try {
+      const { createServer: createViteServer } = await import("vite");
+      const vite = await createViteServer({
+        server: { middlewareMode: true },
+        appType: "spa",
+      });
+      app.use(vite.middlewares);
+    } catch (err) {
+      console.warn("Vite dev server unavailable, falling back to static build:", err);
+      app.use(express.static(distPath));
+      app.get("*", (req, res) => {
+        res.sendFile(path.join(distPath, "index.html"));
+      });
+    }
   } else {
-    const distPath = path.join(process.cwd(), "dist");
     app.use(express.static(distPath));
     app.get("*", (req, res) => {
       res.sendFile(path.join(distPath, "index.html"));

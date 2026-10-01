@@ -46,7 +46,9 @@ export const Header: React.FC<HeaderProps> = ({
     { id: "overview", label: "🏠 Campus Overview" },
     { id: "incidents", label: "📋 Live Complaints", badge: incidents.filter(i => i.status !== "Resolved" && i.status !== "Verified").length, badgeColor: "bg-rose-500" },
     { id: "zones", label: "🏫 Classrooms & Depts", badge: zones.length },
-    { id: "staff", label: "👥 Cleaning Staff Directory" },
+    { id: "staff", label: "👥 Cleaning Staff" },
+    { id: "audits", label: "📑 Hygiene Audits" },
+    { id: "inventory", label: "📦 Cleaning Supplies" },
     { id: "ai-advisor", label: "🤖 Cleaning AI Helper", highlight: true },
   ];
 
