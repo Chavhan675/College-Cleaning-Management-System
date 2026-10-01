@@ -6,20 +6,24 @@ import {
   Phone, 
   Star, 
   MapPin, 
-  ShieldCheck, 
-  Plus, 
-  Filter, 
   Search,
   CheckCircle2,
-  CalendarDays
+  PhoneCall,
+  PlusCircle,
+  Trash2,
+  Crown
 } from "lucide-react";
 import { StaffMember, CampusZone, StaffStatus } from "../types";
+import { useLanguage } from "../context/LanguageContext";
+import { useAdmin } from "../context/AdminContext";
 
 interface StaffTabProps {
   staff: StaffMember[];
   zones: CampusZone[];
   onUpdateStaffStatus: (staffId: string, status: StaffStatus) => void;
   onDispatchStaff: (staffId: string) => void;
+  onOpenAddStaffModal?: () => void;
+  onDeleteStaff?: (staffId: string) => void;
 }
 
 export const StaffTab: React.FC<StaffTabProps> = ({
@@ -27,7 +31,11 @@ export const StaffTab: React.FC<StaffTabProps> = ({
   zones,
   onUpdateStaffStatus,
   onDispatchStaff,
+  onOpenAddStaffModal,
+  onDeleteStaff,
 }) => {
+  const { lang, t } = useLanguage();
+  const { isAdmin } = useAdmin();
   const [shiftFilter, setShiftFilter] = useState<string>("All");
   const [statusFilter, setStatusFilter] = useState<string>("All");
   const [searchQuery, setSearchQuery] = useState("");
@@ -45,134 +53,160 @@ export const StaffTab: React.FC<StaffTabProps> = ({
   const onDutyCount = staff.filter((s) => s.status === "On Duty" || s.status === "Dispatched").length;
 
   return (
-    <div className="space-y-5">
+    <div className="space-y-4">
+      {/* Admin Privilege Banner if Admin Mode is Active */}
+      {isAdmin && (
+        <div className="p-3 bg-gradient-to-r from-amber-50 to-emerald-50 border-2 border-amber-300 rounded-2xl flex items-center justify-between gap-3 shadow-2xs">
+          <div className="flex items-center gap-2.5">
+            <span className="p-2 bg-amber-400 text-slate-950 rounded-xl font-bold shadow-xs">
+              <Crown className="w-5 h-5 fill-amber-600" />
+            </span>
+            <div>
+              <h4 className="text-xs sm:text-sm font-black text-slate-900">
+                {lang === "mr" ? "👑 ॲडमिन कर्मचारी व्यवस्थापन" : "👑 Admin Housekeeping Roster Management"}
+              </h4>
+              <p className="text-[11px] text-slate-600 font-medium">
+                {lang === "mr" ? "तुम्ही नवीन सफाई कर्मचारी नोंदवू शकता, पाळी बदलू शकता आणि संपर्क व्यवस्थापित करू शकता." : "You have permissions to hire, edit shifts, and dispatch campus cleaning crews."}
+              </p>
+            </div>
+          </div>
+
+          {onOpenAddStaffModal && (
+            <button
+              onClick={onOpenAddStaffModal}
+              className="px-4 py-2 bg-emerald-800 hover:bg-emerald-900 text-white rounded-xl text-xs sm:text-sm font-black shadow-xs flex items-center gap-1.5 shrink-0 transition-transform active:scale-95 cursor-pointer"
+            >
+              <PlusCircle className="w-4 h-4" />
+              <span>{lang === "mr" ? "+ नवीन कर्मचारी जोडा" : "+ Add Staff"}</span>
+            </button>
+          )}
+        </div>
+      )}
+
       {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
         <div>
-          <h2 className="text-lg font-bold text-slate-900">Janitorial Staff & Shift Rosters</h2>
-          <p className="text-xs text-slate-500">
-            Real-time crew deployment, shift monitoring, direct dispatching, and housekeeping attendance
+          <h2 className="text-lg sm:text-xl font-black text-slate-900">
+            {t.staffHeading}
+          </h2>
+          <p className="text-xs sm:text-sm text-slate-600 font-medium">
+            {t.staffSubheading}
           </p>
         </div>
 
-        <div className="relative w-full sm:w-64">
-          <Search className="w-4 h-4 text-slate-400 absolute left-3 top-2.5" />
-          <input
-            type="text"
-            placeholder="Search staff, role, building..."
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            className="w-full pl-9 pr-3 py-1.5 text-xs bg-white border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500 text-slate-800"
-          />
+        <div className="flex items-center gap-2">
+          <div className="relative w-full sm:w-72">
+            <Search className="w-4 h-4 text-slate-400 absolute left-3 top-2.5" />
+            <input
+              type="text"
+              placeholder={lang === "mr" ? "कर्मचाऱ्याचे नाव किंवा इमारत शोधा..." : "Search cleaner name, building..."}
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="w-full pl-9 pr-3 py-2 text-xs bg-white border border-slate-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-500 font-medium"
+            />
+          </div>
+
+          {isAdmin && onOpenAddStaffModal && (
+            <button
+              onClick={onOpenAddStaffModal}
+              className="sm:hidden p-2 bg-emerald-700 text-white rounded-xl shadow-xs"
+              title="Add Staff"
+            >
+              <PlusCircle className="w-5 h-5" />
+            </button>
+          )}
         </div>
       </div>
 
-      {/* Shifts Summary Banner */}
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3.5">
-        <div className="bg-white border border-slate-200 p-3.5 rounded-xl shadow-2xs flex items-center justify-between">
+      {/* Roster Summary Banner */}
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+        <div className="bg-white border-2 border-emerald-100 p-3.5 rounded-2xl shadow-2xs flex items-center justify-between">
           <div>
-            <span className="text-[11px] font-semibold text-slate-500 uppercase tracking-wider block">
-              Active Shift
+            <span className="text-[10px] font-black text-emerald-800 uppercase tracking-wider block">
+              {lang === "mr" ? "सध्याची पाळी (Shift)" : "Current Shift"}
             </span>
-            <span className="text-sm font-bold text-slate-900">Morning Shift (06:00 - 14:00)</span>
-            <span className="text-[11px] text-emerald-600 font-medium block mt-0.5">
-              ● In Progress • 6 on duty
+            <span className="text-sm font-black text-slate-900">
+              {lang === "mr" ? "सकाळची पाळी (06:00 - 14:00)" : "Morning Shift (06:00 - 14:00)"}
+            </span>
+            <span className="text-xs text-emerald-600 font-bold block mt-0.5">
+              ● {lang === "mr" ? "६ कर्मचारी कार्यरत" : "6 on duty now"}
             </span>
           </div>
-          <Clock className="w-6 h-6 text-slate-400" />
+          <Clock className="w-6 h-6 text-emerald-600 shrink-0" />
         </div>
 
-        <div className="bg-white border border-slate-200 p-3.5 rounded-xl shadow-2xs flex items-center justify-between">
+        <div className="bg-white border-2 border-amber-100 p-3.5 rounded-2xl shadow-2xs flex items-center justify-between">
           <div>
-            <span className="text-[11px] font-semibold text-slate-500 uppercase tracking-wider block">
-              Total Active Crew
+            <span className="text-[10px] font-black text-amber-800 uppercase tracking-wider block">
+              {lang === "mr" ? "हजर कर्मचारी" : "Active Staff"}
             </span>
-            <span className="text-sm font-bold text-slate-900">{onDutyCount} Cleaners Active</span>
-            <span className="text-[11px] text-slate-500 block mt-0.5">
-              Covering all 7 campus sectors
+            <span className="text-sm font-black text-slate-900">
+              {onDutyCount} {lang === "mr" ? "कर्मचारी हजर" : "Staff Available"}
+            </span>
+            <span className="text-xs text-slate-500 font-medium block mt-0.5">
+              {lang === "mr" ? "सर्व ७ विभागांमध्ये उपलब्ध" : "Covering all college sectors"}
             </span>
           </div>
-          <Users className="w-6 h-6 text-teal-600" />
+          <Users className="w-6 h-6 text-amber-600 shrink-0" />
         </div>
 
-        <div className="bg-white border border-slate-200 p-3.5 rounded-xl shadow-2xs flex items-center justify-between">
+        <div className="bg-white border-2 border-blue-100 p-3.5 rounded-2xl shadow-2xs flex items-center justify-between">
           <div>
-            <span className="text-[11px] font-semibold text-slate-500 uppercase tracking-wider block">
-              Shift Supervisors
+            <span className="text-[10px] font-black text-blue-800 uppercase tracking-wider block">
+              {lang === "mr" ? "थेट कॉलिंग सुविधा" : "Direct Calling"}
             </span>
-            <span className="text-sm font-bold text-slate-900">Anita Roy & Dr. A. Joshi</span>
-            <span className="text-[11px] text-slate-500 block mt-0.5">
-              EHS & Housekeeping Desk
+            <span className="text-sm font-black text-slate-900">
+              {lang === "mr" ? "मोबाईलवर १-क्लिक कॉल" : "1-Tap Direct Call"}
+            </span>
+            <span className="text-xs text-slate-500 font-medium block mt-0.5">
+              {lang === "mr" ? "कोणत्याही फोनवरून काम करते" : "Works on any smartphone"}
             </span>
           </div>
-          <ShieldCheck className="w-6 h-6 text-blue-600" />
+          <PhoneCall className="w-6 h-6 text-blue-600 shrink-0" />
         </div>
-      </div>
-
-      {/* Filter Chips */}
-      <div className="flex flex-wrap items-center gap-2 text-xs">
-        <span className="text-[11px] font-semibold text-slate-400">Shift:</span>
-        {["All", "Morning", "Afternoon", "Night"].map((shift) => (
-          <button
-            key={shift}
-            onClick={() => setShiftFilter(shift)}
-            className={`px-3 py-1 rounded-md font-medium transition-colors ${
-              shiftFilter === shift
-                ? "bg-slate-900 text-white"
-                : "bg-white border border-slate-200 text-slate-600 hover:bg-slate-100"
-            }`}
-          >
-            {shift}
-          </button>
-        ))}
-
-        <span className="text-[11px] font-semibold text-slate-400 ml-2">Status:</span>
-        {["All", "On Duty", "Dispatched", "On Break", "Off Duty"].map((st) => (
-          <button
-            key={st}
-            onClick={() => setStatusFilter(st)}
-            className={`px-3 py-1 rounded-md font-medium transition-colors ${
-              statusFilter === st
-                ? "bg-teal-600 text-white"
-                : "bg-white border border-slate-200 text-slate-600 hover:bg-slate-100"
-            }`}
-          >
-            {st}
-          </button>
-        ))}
       </div>
 
       {/* Staff Cards Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3.5">
         {filteredStaff.map((person) => {
           const isOnDuty = person.status === "On Duty";
           const isDispatched = person.status === "Dispatched";
           const isOffDuty = person.status === "Off Duty";
 
-          // Find zones assigned to this staff
-          const assignedZonesList = zones.filter((z) => z.assignedStaffId === person.id);
-
           return (
             <div
               key={person.id}
-              className="bg-white border border-slate-200 rounded-xl p-4 shadow-2xs hover:shadow-xs transition-all flex flex-col justify-between"
+              className={`bg-white rounded-2xl border-2 p-4 shadow-xs flex flex-col justify-between ${
+                isOnDuty ? "border-emerald-200" : isDispatched ? "border-sky-200" : "border-slate-200"
+              }`}
             >
               <div>
-                {/* Top Info */}
                 <div className="flex items-start justify-between gap-2">
                   <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 rounded-full bg-slate-100 border border-slate-200 flex items-center justify-center font-bold text-slate-800 text-sm">
-                      {person.name.split(" ").map((n) => n[0]).join("")}
+                    <div className="w-12 h-12 rounded-xl bg-emerald-100 text-emerald-900 font-black text-lg flex items-center justify-center shrink-0">
+                      {person.name.slice(0, 1)}
                     </div>
                     <div>
                       <div className="flex items-center gap-1.5">
-                        <h4 className="text-sm font-bold text-slate-900">{person.name}</h4>
-                        <span className="text-[10px] font-mono px-1.5 py-0.2 rounded bg-slate-100 text-slate-600">
-                          {person.badgeNumber}
-                        </span>
+                        <h4 className="text-sm sm:text-base font-black text-slate-900 leading-snug">
+                          {person.name}
+                        </h4>
+                        {isAdmin && onDeleteStaff && (
+                          <button
+                            onClick={() => {
+                              if (window.confirm(lang === "mr" ? `कर्मचारी ${person.name} काढून टाकायचा आहे का?` : `Remove cleaner ${person.name}?`)) {
+                                onDeleteStaff(person.id);
+                              }
+                            }}
+                            className="p-1 text-slate-300 hover:text-rose-600 rounded transition-colors"
+                            title="Remove Staff"
+                          >
+                            <Trash2 className="w-3.5 h-3.5" />
+                          </button>
+                        )}
                       </div>
-                      <span className="text-xs font-medium text-teal-700 block">
-                        {person.role}
+                      <span className="text-xs font-bold text-emerald-800 block">
+                        {person.role} • {person.badgeNumber}
                       </span>
                     </div>
                   </div>
@@ -181,91 +215,45 @@ export const StaffTab: React.FC<StaffTabProps> = ({
                   <select
                     value={person.status}
                     onChange={(e) => onUpdateStaffStatus(person.id, e.target.value as StaffStatus)}
-                    className={`text-[10px] font-bold px-2 py-0.8 rounded-full border focus:outline-none ${
-                      isOnDuty
-                        ? "bg-emerald-50 text-emerald-700 border-emerald-200"
-                        : isDispatched
-                        ? "bg-sky-50 text-sky-700 border-sky-200"
-                        : isOffDuty
-                        ? "bg-slate-100 text-slate-600 border-slate-200"
-                        : "bg-amber-50 text-amber-700 border-amber-200"
-                    }`}
+                    className="text-xs font-black px-2.5 py-1 rounded-lg border-2 border-slate-200 bg-slate-50 text-slate-800 cursor-pointer"
                   >
-                    <option value="On Duty">On Duty</option>
-                    <option value="Dispatched">Dispatched</option>
-                    <option value="On Break">On Break</option>
-                    <option value="Off Duty">Off Duty</option>
+                    <option value="On Duty">🟢 {t.statusOnDuty}</option>
+                    <option value="Dispatched">🏃 {t.statusDispatched}</option>
+                    <option value="On Break">☕ {t.statusOnBreak}</option>
+                    <option value="Off Duty">⚪ {t.statusOffDuty}</option>
                   </select>
                 </div>
 
-                {/* Details */}
-                <div className="mt-3.5 space-y-1.5 text-xs text-slate-600 bg-slate-50 p-2.5 rounded-lg border border-slate-100">
+                {/* Details box */}
+                <div className="mt-3.5 space-y-1.5 text-xs text-slate-700 bg-slate-50 p-3 rounded-xl border border-slate-200/80">
                   <div className="flex items-center justify-between">
-                    <span className="text-slate-400 text-[11px]">Assigned Building:</span>
-                    <span className="font-semibold text-slate-800">{person.assignedBuilding}</span>
-                  </div>
-                  <div className="flex items-center justify-between">
-                    <span className="text-slate-400 text-[11px]">Shift:</span>
-                    <span className="font-medium text-slate-700">{person.shift}</span>
-                  </div>
-                  <div className="flex items-center justify-between">
-                    <span className="text-slate-400 text-[11px]">Tasks Today:</span>
-                    <span className="font-semibold text-emerald-700">
-                      {person.tasksCompletedToday} completed
+                    <span className="text-slate-500 font-medium">
+                      {lang === "mr" ? "नेमलेली इमारत:" : "Assigned Building:"}
                     </span>
+                    <span className="font-bold text-slate-900">{person.assignedBuilding}</span>
                   </div>
                   <div className="flex items-center justify-between">
-                    <span className="text-slate-400 text-[11px]">Rating:</span>
-                    <span className="font-bold text-amber-600 flex items-center gap-1">
-                      <Star className="w-3.5 h-3.5 fill-amber-400 text-amber-400" />
-                      {person.rating} / 5.0
-                    </span>
+                    <span className="text-slate-500 font-medium">{t.shiftLabel}:</span>
+                    <span className="font-semibold text-slate-800">{person.shift}</span>
                   </div>
-                </div>
-
-                {/* Assigned Zones tags */}
-                <div className="mt-3">
-                  <span className="text-[11px] font-semibold text-slate-400 block mb-1">
-                    Direct Zone Coverage ({assignedZonesList.length}):
-                  </span>
-                  <div className="flex flex-wrap gap-1">
-                    {assignedZonesList.length > 0 ? (
-                      assignedZonesList.map((z) => (
-                        <span
-                          key={z.id}
-                          className="px-2 py-0.5 rounded bg-white border border-slate-200 text-[11px] text-slate-700"
-                        >
-                          {z.code}
-                        </span>
-                      ))
-                    ) : (
-                      <span className="text-[11px] text-slate-400 italic">No specific zone locked (floating/campus wide)</span>
-                    )}
+                  <div className="flex items-center justify-between">
+                    <span className="text-slate-500 font-medium">{t.tasksCompletedLabel}:</span>
+                    <span className="font-black text-emerald-700">
+                      {person.tasksCompletedToday} {lang === "mr" ? "कामे पूर्ण" : "done"}
+                    </span>
                   </div>
                 </div>
               </div>
 
-              {/* Bottom Actions */}
-              <div className="mt-4 pt-3 border-t border-slate-100 flex items-center justify-between text-xs">
+              {/* Call Now Button (Large Touch Target for Low-Literacy / Mobile) */}
+              <div className="mt-4 pt-3 border-t border-slate-100 flex items-center justify-between gap-2">
                 <a
                   href={`tel:${person.phone}`}
-                  className="flex items-center gap-1 text-slate-600 hover:text-slate-900 font-medium"
+                  className="flex-1 py-2.5 px-3 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs sm:text-sm font-black shadow-xs flex items-center justify-center gap-2 transition-all active:scale-95"
                 >
-                  <Phone className="w-3.5 h-3.5 text-slate-400" />
-                  <span>{person.phone}</span>
+                  <Phone className="w-4 h-4" />
+                  <span>{t.callNowBtn} ({person.phone})</span>
                 </a>
-
-                <button
-                  onClick={() => onDispatchStaff(person.id)}
-                  disabled={isOffDuty}
-                  className={`px-3 py-1 rounded-md text-xs font-semibold transition-colors ${
-                    isOffDuty
-                      ? "bg-slate-100 text-slate-400 cursor-not-allowed"
-                      : "bg-teal-600 hover:bg-teal-700 text-white shadow-2xs"
-                  }`}
-                >
-                  Dispatch
-                </button>
               </div>
             </div>
           );

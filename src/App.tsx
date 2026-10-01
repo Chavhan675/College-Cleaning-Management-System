@@ -23,6 +23,7 @@ import {
   resetAllData 
 } from "./utils/storage";
 import { getFallbackAnalysis } from "./utils/collegeCleaningAi";
+import { useLanguage } from "./context/LanguageContext";
 
 // Components
 import { Header } from "./components/Header";
@@ -41,8 +42,13 @@ import { QRScannerModal } from "./components/QRScannerModal";
 import { NewAuditModal } from "./components/NewAuditModal";
 import { AssignStaffModal } from "./components/AssignStaffModal";
 import { AIProtocolModal } from "./components/AIProtocolModal";
+import { AddZoneModal } from "./components/AddZoneModal";
+import { AddStaffModal } from "./components/AddStaffModal";
+import { AddInventoryModal } from "./components/AddInventoryModal";
 
 export default function App() {
+  const { lang, t } = useLanguage();
+
   // Main state loaded from storage
   const [dataLoaded, setDataLoaded] = useState(false);
   const [zones, setZones] = useState<CampusZone[]>([]);
@@ -60,6 +66,9 @@ export default function App() {
   const [isAuditModalOpen, setIsAuditModalOpen] = useState(false);
   const [isAssignModalOpen, setIsAssignModalOpen] = useState(false);
   const [isProtocolModalOpen, setIsProtocolModalOpen] = useState(false);
+  const [isAddZoneModalOpen, setIsAddZoneModalOpen] = useState(false);
+  const [isAddStaffModalOpen, setIsAddStaffModalOpen] = useState(false);
+  const [isAddInventoryModalOpen, setIsAddInventoryModalOpen] = useState(false);
 
   // Selected Entities for Modals
   const [selectedIncidentForAssign, setSelectedIncidentForAssign] = useState<CleaningIncident | null>(null);
@@ -377,6 +386,36 @@ export default function App() {
     showToast("Purchase requisition dispatched to university procurement.");
   };
 
+  // Handler: Add New Zone (Admin)
+  const handleAddZone = (newZone: CampusZone) => {
+    setZones((prev) => [newZone, ...prev]);
+    showToast(lang === "mr" ? `नवीन वर्ग ${newZone.code} यशस्वीरित्या जोडला.` : `New room ${newZone.code} added.`);
+  };
+
+  // Handler: Delete Zone (Admin)
+  const handleDeleteZone = (zoneId: string) => {
+    setZones((prev) => prev.filter((z) => z.id !== zoneId));
+    showToast(lang === "mr" ? "वर्ग यादीतून काढला." : "Room removed from campus registry.");
+  };
+
+  // Handler: Add New Staff (Admin)
+  const handleAddStaff = (newStaff: StaffMember) => {
+    setStaff((prev) => [newStaff, ...prev]);
+    showToast(lang === "mr" ? `नवीन कर्मचारी ${newStaff.name} नोंदवले.` : `Cleaner ${newStaff.name} registered.`);
+  };
+
+  // Handler: Delete Staff (Admin)
+  const handleDeleteStaff = (staffId: string) => {
+    setStaff((prev) => prev.filter((s) => s.id !== staffId));
+    showToast(lang === "mr" ? "कर्मचारी यादीतून काढले." : "Cleaner removed from roster.");
+  };
+
+  // Handler: Add Inventory Item (Admin)
+  const handleAddInventory = (newItem: InventoryItem) => {
+    setInventory((prev) => [newItem, ...prev]);
+    showToast(lang === "mr" ? `नवीन साहित्य ${newItem.name} साठ्यात जोडले.` : `Item ${newItem.name} added to stock.`);
+  };
+
   // Handler: Reset Data
   const handleResetData = () => {
     if (window.confirm("Reset all campus zones, staff, and tickets to default demo state?")) {
@@ -459,6 +498,8 @@ export default function App() {
             onScanQR={(zoneCode) => {
               setIsQRModalOpen(true);
             }}
+            onOpenAddZoneModal={() => setIsAddZoneModalOpen(true)}
+            onDeleteZone={handleDeleteZone}
           />
         )}
 
@@ -496,6 +537,8 @@ export default function App() {
             zones={zones}
             onUpdateStaffStatus={handleUpdateStaffStatus}
             onDispatchStaff={handleDispatchStaffQuick}
+            onOpenAddStaffModal={() => setIsAddStaffModalOpen(true)}
+            onDeleteStaff={handleDeleteStaff}
           />
         )}
 
@@ -504,6 +547,7 @@ export default function App() {
             inventory={inventory}
             onUpdateStock={handleUpdateInventoryStock}
             onReorder={handleReorderInventory}
+            onOpenAddInventoryModal={() => setIsAddInventoryModalOpen(true)}
           />
         )}
       </main>
@@ -550,21 +594,40 @@ export default function App() {
         incident={selectedIncidentForProtocol}
       />
 
+      <AddZoneModal
+        isOpen={isAddZoneModalOpen}
+        onClose={() => setIsAddZoneModalOpen(false)}
+        staff={staff}
+        onAddZone={handleAddZone}
+      />
+
+      <AddStaffModal
+        isOpen={isAddStaffModalOpen}
+        onClose={() => setIsAddStaffModalOpen(false)}
+        onAddStaff={handleAddStaff}
+      />
+
+      <AddInventoryModal
+        isOpen={isAddInventoryModalOpen}
+        onClose={() => setIsAddInventoryModalOpen(false)}
+        onAddInventory={handleAddInventory}
+      />
+
       {/* Footer */}
       <footer className="border-t border-slate-200 bg-white py-5 mt-auto">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex flex-col md:flex-row items-center justify-between gap-3 text-xs text-slate-500">
           <div className="flex flex-col sm:flex-row items-center gap-2 text-center sm:text-left">
-            <span className="font-bold text-slate-800">
-              Government College of Engineering and Research, Avasari Khurd
+            <span className="font-bold text-slate-900">
+              {t.collegeName}
             </span>
             <span className="hidden sm:inline text-slate-300">•</span>
-            <span className="text-emerald-700 font-medium">Campus Hygiene & Sanitation Initiative</span>
+            <span className="text-emerald-700 font-semibold">{t.collegeSubtitle}</span>
           </div>
-          <div className="flex flex-wrap items-center justify-center gap-2 text-[11px] text-slate-500 font-medium">
-            <span className="text-slate-400">Project Contributors:</span>
-            <span className="bg-slate-100 px-2 py-0.5 rounded text-slate-700">Karan Gavhane (25111030)</span>
-            <span className="bg-slate-100 px-2 py-0.5 rounded text-slate-700">Mayur Ghode (25111012)</span>
-            <span className="bg-slate-100 px-2 py-0.5 rounded text-slate-700">Vinayak Deokar (25111033)</span>
+          <div className="flex flex-wrap items-center justify-center gap-2 text-[11px] text-slate-600 font-semibold">
+            <span className="text-slate-400">{lang === "mr" ? "प्रकल्प विद्यार्थी:" : "Project Contributors:"}</span>
+            <span className="bg-slate-100 px-2 py-0.5 rounded text-slate-700">करण गव्हाणे (25111030)</span>
+            <span className="bg-slate-100 px-2 py-0.5 rounded text-slate-700">मयूर घोडे (25111012)</span>
+            <span className="bg-slate-100 px-2 py-0.5 rounded text-slate-700">विनायक देवकर (25111033)</span>
           </div>
         </div>
       </footer>
